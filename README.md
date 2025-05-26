@@ -1,7 +1,6 @@
 # VAE-GSLM
 - Official implementation for the paper: A Variational Framework for Improving Naturalness in Generative Spoken Language Models
 - Audio samples used for MOS evaluation can be accessed [here](https://cmu.box.com/s/irzoqoj4za0gww3sl7nby18flxcb9ruj) 
-- Quick demo can be accessed [here]()
 
 ## Setup the environment
 
@@ -21,7 +20,7 @@ conda install -c conda-forge faiss-gpu=1.9.0
 pip3 install -r requirements.txt
 ```
 
-If you wish to only use the pre-trained model, jump to section. 
+If you wish to only use the pre-trained model, jump to the section [Pre-trained Models](#pre-trained-models) section. 
 
 If you wish to train everything from scratch, jump to the [Training from scratch](#training-from-scratch) section.
 
