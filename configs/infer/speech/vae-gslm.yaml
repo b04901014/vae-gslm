@@ -1,0 +1,39 @@
+identifier: "inference.speech.inferer.SpeechInferer"
+precision: "16-mixed"
+output_dir: "./samples"
+temperature: 0.85
+token_temperature: 0.85
+sample_length: 10.0
+sample_prior_length: 3.0
+ckpt_path: "./vae-gslm_ckpt"
+
+diffusion:
+    sampling_timesteps: 100
+    ddim_sampling_eta: 0.5
+
+vocoder:
+    path: "./vocoder_ckpt" 
+
+model:
+    identifier: "models.speech.lvtr.LVTR"
+
+data:
+    path: "./LibriSpeech-960/dev/tokens.txt"
+    wavdir: "./LibriSpeech-960/dev"
+    sample_rate: 16000
+    with_text: false
+    with_tokens: true
+    num_workers: 8
+    batch_size: 64
+    min_audio_length: 5.0
+    bits_per_second: 18500
+    pad:
+        multiple_of: 320
+        mode: "constant"
+
+    sampler:
+        type: "standard"
+        shuffle: false
+
+trainer:
+    distributed: false

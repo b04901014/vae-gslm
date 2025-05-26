@@ -1,0 +1,17 @@
+mel:
+    sample_rate: 16000
+    n_fft: 1025
+    win_length: 1024
+    hop_length: 320
+    n_mels: 80
+    f_min: 0
+    f_max: 8000
+    power: 1.0
+    log_scale: true
+
+data:
+    path: "/LibriSpeech-960/train/metadata.txt"
+    wavdir: "/LibriSpeech-960/train"
+    sample_rate: 16000
+    with_text: false
+    num_workers: 8

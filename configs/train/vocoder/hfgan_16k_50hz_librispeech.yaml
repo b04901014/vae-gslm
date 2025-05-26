@@ -1,0 +1,104 @@
+trainer:
+    identifier: "trainers.vocoder.hfgan.HiFiGANTrainer"
+    total_steps: 1600000 # Total Steps * 2 (GANs)
+    check_val_every_n_epoch: 2
+    save_every_n_epoch: 2
+    limit_val_batches: 500
+    precision: "32"
+    distributed: false
+
+logging:
+    log_dir: "outputs/hfgan_50hz_librispeech"
+    num_samples: 10
+
+feature:
+    sample_rate: 16000
+    n_fft: 1025
+    win_length: 1024
+    hop_length: 320
+    n_mels: 80
+    f_min: 0
+    f_max: 8000
+    power: 1.0
+    log_scale: true
+
+model:
+    generator:
+        weight_norm: true
+        upsample_rates: [5, 4, 2, 2, 2, 2]
+        upsample_kernel_sizes: [10, 8, 4, 4, 4, 4]
+        upsample_initial_channel: 512
+        resblock_kernel_sizes: [3, 7, 11]
+        resblock_dilation_sizes:
+            - [1, 3, 5]
+            - [1, 3, 5]
+            - [1, 3, 5]
+        in_channels: 80
+        kernel_size: 7
+        
+    mrd:
+        weight_norm: true
+        resolutions: 
+            - [1024, 120, 600]
+            - [2048, 240, 1200]
+            - [512, 50, 240]
+
+    mpd:
+        weight_norm: true
+        periods: [2, 3, 5, 7, 11]
+
+training:
+    generator:
+        optimizer:
+            identifier: "Adam"
+            lr: 0.0001
+            beta1: 0.8
+            beta2: 0.98
+        scheduler:
+            identifier: "triangle"
+            warmup_steps: 0
+            flat_steps: 100000
+
+    discriminator:
+        optimizer:
+            identifier: "Adam"
+            lr: 0.0001
+            beta1: 0.8
+            beta2: 0.98
+        scheduler:
+            identifier: "triangle"
+            warmup_steps: 0
+            flat_steps: 100000
+
+    mel_loss_weight: 40.0
+
+data:
+    train:
+        path: "./LibriSpeech-960/train/metadata.txt"
+        wavdir: "./LibriSpeech-960/train"
+        segment_size: 1.0
+        sample_rate: 16000
+        dither: true
+        with_text: false
+        num_workers: 32
+        batch_size: 24
+        min_audio_length: 1.5
+        bits_per_second: 18500
+        
+        sampler:
+            type: "standard"
+            shuffle: true
+    val:
+        path: "./LibriSpeech-960/dev/metadata.txt"
+        wavdir: "./LibriSpeech-960/dev"
+        sample_rate: 16000
+        segment_size: 7.0
+        with_text: false
+        num_workers: 8
+        batch_size: 4
+        min_audio_length: 4.0
+        bits_per_second: 18500
+
+        sampler:
+            type: "standard"
+            shuffle: false

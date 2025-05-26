@@ -1,0 +1,209 @@
+trainer:
+    identifier: "trainers.speech.lvtr.LVTRTrainer"
+    total_steps: 1200000
+    val_check_interval: 10000
+    save_every_n_epoch: 1
+    limit_val_batches: 500
+    precision: "16-mixed"
+    distributed: true
+    ddp_strategy: "ddp"
+    compile:
+        mode: "default"
+
+
+logging:
+    log_dir: "outputs/vae-gslm"
+    num_samples: 10
+    temperature: 1.0
+    sample_length: 7.0
+    sample_prior_length: 2.0
+    plot_attn: false
+
+vocoder:
+    path: "outputs/_hfgan_50hz" 
+
+hubert:
+    sample_rate: 50
+
+model:
+    tokens:
+        embedding_dim: 64
+        vocab_size: 200
+    latent_dim: 4
+    utterance_encoder:
+        num_layers: 3
+        resample_rates: [-2, -2, -2]
+        resample_ksize: [4, 4, 4]
+        init_channel: 64
+        out_channels: [128, 256, 512]
+        layer:
+            norm:
+                identifier: "InstanceNorm"
+                eps: 0.000001
+            activation:
+                identifier: "ReLU"
+        embedding_dim: 128
+    encoder:
+        identifier: "BottleNeckResNet"
+        num_layers: 3
+        resample_rates: [1, 1, 1]
+        resample_ksize: [1, 1, 1]
+        init_channel: 512
+        out_channels: [512, 512, 512]
+        hidden_channels: [2048, 2048, 2048]
+        final_norm: true
+        layer:
+            causal_padding: true
+            kernel_size: 7
+            norm:
+                identifier: "InstanceNorm"
+                eps: 0.000001
+            activation:
+                identifier: "ReLU"
+    decoder:
+        diffusion:
+            timesteps: 1000
+            loss_type: "l1"
+            input_scale: 5.0
+            objective: "pred_noise"
+            clamp_range: [-3.0, 1.2]
+            ddim_sampling_eta: 1.0
+            beta_schedule:
+                identifier: 'cosine'
+            identifier: "ConditionalBottleNeckUNet"
+        cond_unet:
+            unet:
+                condition_dim: 32
+                num_layers: 6
+                resample_rates: [1, 1, 1, 1, 1, 1]
+                resample_ksize: [1, 1, 1, 1, 1, 1]
+                init_channel: 512
+                out_channels: [512, 512, 512, 512, 512, 512]
+                hidden_channels: [2048, 2048, 2048, 2048, 2048, 2048]
+                conditional: [false, true, true, true, true, false] 
+                skip_connection: [null, null, null, 2, 1, 0]
+                connection_type: "concat"
+                final_norm: true
+                layer:
+                    causal_padding: true
+                    kernel_size: 7
+                    norm:
+                        identifier: "InstanceNorm"
+                        eps: 0.000001
+                    activation:
+                        identifier: "SiLU"
+                    condition_type: "concat"
+                upward_layer:
+                    boundary: 3
+                    future_padding: true
+                    kernel_size: 7
+                    norm:
+                        identifier: "InstanceNorm"
+                        eps: 0.000001
+                    activation:
+                        identifier: "SiLU"
+                    condition_type: "concat"
+            time_embedding:
+                dim: 256
+                maxpos: 1000
+                activation:
+                    identifier: "SiLU"
+
+    transformer:
+        bias: false
+        rpe:
+            identifier: "ALiBi"
+            maxpos: 1024
+        num_layers: 16
+        layer:
+            ffd_size: 4096
+            dim: 1024
+            norm:
+                identifier: "RMSNorm"
+                eps: 0.000001
+            activation:
+                identifier: "GELU"
+            self_attn: 
+                nheads: 16
+                causal: true
+        flow:
+            num_layers: 4
+            conditional: true
+            layer:
+                hidden_dim: 64
+                activation:
+                    identifier: "GELU"
+                mean_only: false
+                scale_range: [0.5, 2.0]
+                norm:
+                    identifier: "LayerNorm"
+                    eps: 0.000001
+
+training:
+    gradient_accumulation: 2
+    optimizer:
+        identifier: "AdamW"
+        lr: 5.0e-4
+        beta1: 0.9
+        beta2: 0.98
+        weight_decay: 0.1
+        exclude_norm_and_bias_from_weight_decay: true
+    scheduler:
+        identifier: "cosine"
+        min_lr: 5.0e-5
+        warmup_kld: 30000
+        flat_steps: 30000
+    token_kld_weight: 0.5
+    fixed_beta: 0.04
+    scale_rec_beta: false
+    mel_rescale:
+        mean: -1.5
+        std: 2.0
+
+data:
+    train:
+        path: "./ll60/vad_20s/tokens.txt"
+        wavdir: "./ll60/vad_20s/"
+        preprocess_mels: "./ll60/vad_20s/mels"
+        preprocess_mels_recursive_dir: true
+        sample_rate: 16000
+        with_text: false
+        with_tokens: true
+        num_workers: 6
+        batch_size: 48
+        min_audio_length: 1.0
+        token_segment_size: 640
+        bits_per_second: 18500
+        random_crop_mel_utt:
+            min_seg_sec: 2.0
+            max_seg_sec: 4.0
+        post_pad:
+            tokens:
+                num_tokens: 640
+            mel:
+                length: 12.8
+        
+        sampler:
+            type: "standard"
+            shuffle: true
+    val:
+        path: "./LibriSpeech-960/dev/tokens.txt"
+        wavdir: "./LibriSpeech-960/dev"
+        sample_rate: 16000
+        token_segment_size: 150
+        with_text: false
+        with_tokens: true
+        num_workers: 2
+        batch_size: 8
+        min_audio_length: 3.2
+        bits_per_second: 18500
+        random_crop_mel_utt:
+            min_seg_sec: 1.0
+            max_seg_sec: 5.0
+        pad:
+            multiple_of: 400
+            mode: "constant"
+
+        sampler:
+            type: "standard"
+            shuffle: true
