@@ -34,9 +34,9 @@
     }
     
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
-      padding: 2rem;
+      padding: 2rem 1rem;
     }
     
     .paper-info {
@@ -95,8 +95,8 @@
     }
     
     .method-name {
-      width: 150px;
-      min-width: 150px;
+      width: 140px;
+      min-width: 140px;
       padding: 1rem;
       background-color: var(--primary-color);
       color: white;
@@ -112,22 +112,22 @@
       flex-wrap: wrap;
       flex: 1;
       padding: 1rem;
-      gap: 10px;
+      gap: 12px;
     }
     
     .audio-box {
       flex: 1;
-      min-width: 150px;
+      min-width: 145px;
       background-color: white;
-      border-radius: 6px;
+      border-radius: 8px;
       padding: 0.75rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.08);
       transition: transform 0.2s, box-shadow 0.2s;
     }
     
     .audio-box:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      transform: translateY(-3px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.12);
     }
     
     .audio-box h4 {
@@ -135,12 +135,24 @@
       color: var(--primary-color);
       text-align: center;
       font-size: 0.9rem;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
+      font-weight: 600;
     }
     
     audio {
       width: 100%;
-      height: 32px;
+      height: 36px;
+      border-radius: 20px;
+      background-color: #f0f4f8;
+    }
+    
+    audio::-webkit-media-controls-panel {
+      background-color: #f0f4f8;
+    }
+    
+    audio::-webkit-media-controls-play-button {
+      background-color: var(--primary-color);
+      border-radius: 50%;
     }
     
     hr {
@@ -274,7 +286,7 @@
 
         <!-- Ground Truth Row -->
         <div class="method-row">
-          <div class="method-name">Human Speech</div>
+          <div class="method-name">Human Speech (Ground Truth)</div>
           <div class="audio-container">
             <div class="audio-box"><h4>Sample 1</h4><audio controls><source src="ground-truth-sample1.wav" type="audio/wav">Your browser does not support audio.</audio></div>
             <div class="audio-box"><h4>Sample 2</h4><audio controls><source src="ground-truth-sample2.wav" type="audio/wav">Your browser does not support audio.</audio></div>
