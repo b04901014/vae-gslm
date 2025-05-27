@@ -60,7 +60,7 @@ find . -name "*.flac" > metadata.txt
 
  `-c` sepcifies the centroids that are trained in the first step on Libri-light.
 
-3. Preprocess Mel-spectrograms for faster training:
+3. Preprocess Mel-spectrograms for faster training (Optional):
  - `python -m scripts.preprocess_mels -c configs/preprocess/hfgan_16k_50hz_libri-light.yaml -o ./ll60/vad_20s/mels`
 
 4. Train the VAE-GSLM:
@@ -83,6 +83,21 @@ If you haven't done so, run:
 to get the semantic tokens for the prompts.
 
 Then run inference:
-- `python -m scripts.infer -c configs/vae-gslm.yaml`
+- `python -m scripts.infer -c configs/infer/speech/vae-gslm.yaml`
 
-This script uses the tokens specified in `./LibriSpeech-960/dev/token.txt`, get the first 3 second as prompt and the model generates 10 seconds of continuation. Then we use VAD to trim the excessive silence. The samples will be in `./samples`. Feel free the adjust the inference parameters in `configs/vae-gslm.yaml`.
+This script uses the tokens specified in `./LibriSpeech-960/dev/token.txt`, get the first 3 second as prompt and the model generates 10 seconds of continuation. The samples will be in `./samples`. Feel free the adjust the inference parameters in `configs/vae-gslm.yaml`.
+
+### Voice Activity Detection (VAD) Postprocessing
+Since this model is not trained to output stop token (it can be trained to, but not implemented in these experiments.), the model will always generate up to the specified audio length; it may output noise or long silence after sentence is finished. If you wish to trim the unwanted portion after a sentence is finished. You need to install [pyannote](https://github.com/pyannote/pyannote-audio):
+```
+pip3 install pyannote.audio==3.3.2
+```
+Then, get their access token following [here](https://github.com/pyannote/pyannote-audio?tab=readme-ov-file#tldr).
+
+Modify `configs/infer/speech/vae-gslm.yaml`. Replace:
+```yaml
+vad:
+    auth_token: null
+```
+with your access token. Then you can run the inference, it will post-process the samples with VAD and trim the trailing silences for you.
+
