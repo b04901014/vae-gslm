@@ -1,6 +1,7 @@
 # VAE-GSLM
 - Official implementation for the paper: A Variational Framework for Improving Naturalness in Generative Spoken Language Models
 - Audio samples used for MOS evaluation can be accessed [here](https://cmu.box.com/s/irzoqoj4za0gww3sl7nby18flxcb9ruj) 
+- Quick Demo is avalible at [here](https://b04901014.github.io/vae-gslm/)
 
 ## Setup the environment
 
