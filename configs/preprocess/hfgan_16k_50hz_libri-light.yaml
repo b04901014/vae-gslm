@@ -11,7 +11,7 @@ mel:
 
 data:
     path: "./ll60/vad_20s/metadata.txt"
-    wavdir: "./ll60/vad_20s/libri-light/"
+    wavdir: "./ll60/vad_20s/"
     sample_rate: 16000
     with_text: false
     num_workers: 8

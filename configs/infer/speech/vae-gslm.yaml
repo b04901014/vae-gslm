@@ -37,3 +37,6 @@ data:
 
 trainer:
     distributed: false
+
+vad:
+    auth_token: null

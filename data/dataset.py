@@ -280,9 +280,10 @@ class MelSpecDataset(StandardDataset):
                 ret['text_written_form'] = re_decoded
             if self.preprocess_mels_recursive_dir:
                 p = Path(self.audios[i])
-                fname = str(p.parents[0] / Path(p.stem + '.npy'))
-                fmel = os.path.join(self.preprocess_mels,
-                                    fname[len(self.hp.wavdir):])
+                fname = p.parents[0] / Path(p.stem + '.npy')
+                fname = str(fname.resolve())
+                fname = fname[len(str(Path(self.hp.wavdir).resolve()))+1:]
+                fmel = os.path.join(self.preprocess_mels, fname)
             else:
                 fmel = os.path.join(self.preprocess_mels,
                                     Path(self.audios[i]).stem + '.npy')

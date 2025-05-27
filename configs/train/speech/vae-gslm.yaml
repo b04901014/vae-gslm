@@ -7,8 +7,6 @@ trainer:
     precision: "16-mixed"
     distributed: true
     ddp_strategy: "ddp"
-    compile:
-        mode: "default"
 
 
 logging:
@@ -20,7 +18,7 @@ logging:
     plot_attn: false
 
 vocoder:
-    path: "outputs/_hfgan_50hz" 
+    path: "./vocoder_ckpt"
 
 hubert:
     sample_rate: 50
@@ -162,15 +160,17 @@ training:
 
 data:
     train:
-        path: "./ll60/vad_20s/tokens.txt"
+        path: "./ll60/vad_20s/tokens_v200.txt"
         wavdir: "./ll60/vad_20s/"
         preprocess_mels: "./ll60/vad_20s/mels"
         preprocess_mels_recursive_dir: true
+        #path: "./LibriSpeech-960/dev/tokens_v200_libri-light.txt"
+        #wavdir: "./LibriSpeech-960/dev"
         sample_rate: 16000
         with_text: false
         with_tokens: true
         num_workers: 6
-        batch_size: 48
+        batch_size: 8
         min_audio_length: 1.0
         token_segment_size: 640
         bits_per_second: 18500
@@ -187,7 +187,7 @@ data:
             type: "standard"
             shuffle: true
     val:
-        path: "./LibriSpeech-960/dev/tokens.txt"
+        path: "./LibriSpeech-960/dev/tokens_v200_libri-light.txt"
         wavdir: "./LibriSpeech-960/dev"
         sample_rate: 16000
         token_segment_size: 150

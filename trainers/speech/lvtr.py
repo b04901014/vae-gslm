@@ -6,6 +6,7 @@ from training_lib.losses import masked_loss
 from hparams.hp import Hparams
 from models.vocoder.vocoder import HiFiGAN
 from .sampler import ARTRSampler
+from utils.tensormask import TensorMask
 import torch
 import os
 
@@ -18,7 +19,12 @@ class LVTRTrainer(BaseTrainer):
         hp.vocoder.check_arg_in_hparams("path")
         self.mel_rescale = None
         self.rec_loss_scale = self.hp.training.get("rec_loss_scale", 1.0)
+        self.kld_scale = self.hp.training.get("kld_scale", 1.0)
         self.fixed_beta = self.hp.training.get("fixed_beta", None)
+        if self.fixed_beta is not None:
+            if self.hp.training.get("scale_rec_beta", True):
+                self.rec_loss_scale *= 1 - self.fixed_beta
+            self.kld_scale *= self.fixed_beta
 
         if hp.training.has("mel_rescale"):
             hp.training.mel_rescale.check_arg_in_hparams("mean", "std")
@@ -40,6 +46,7 @@ class LVTRTrainer(BaseTrainer):
         self.automatic_optimization = False
         self.zero_kld = hp.training.scheduler.get("zero_kld", 0)
         self.warmup_kld = hp.training.scheduler.get("warmup_kld", 0)
+        self.entropy_weight = hp.training.get('entropy_weight', 1.0)
         self.use_tokens = self.model.use_tokens
         self.token_kld_weight = hp.training.get('token_kld_weight', 1.0)
         if self.use_tokens:
@@ -47,6 +54,14 @@ class LVTRTrainer(BaseTrainer):
             hp.hubert.check_arg_in_hparams("sample_rate")
             self.hp_hubert = Hparams(deduplicate=False,
                                      sample_rate=hp.hubert.sample_rate)
+        freeze_encoder_with = self.hp.model.encoder.get("init_from_ckpt", None)
+        if freeze_encoder_with is not None:
+            state_dict = torch.load(freeze_encoder_with, map_location='cpu')
+            state_dict = {k[8:]: v for k, v in state_dict.items()
+                          if 'encoder' == k[:7]}
+            self.model.encoder.load_state_dict(state_dict)
+            for param in self.model.encoder.parameters():
+                param.requires_grad = False
 
     def train_dataloader(self):
         if self.use_tokens:
@@ -86,11 +101,11 @@ class LVTRTrainer(BaseTrainer):
         return [optimizer], [scheduler]
 
     def _training_loop(self, batch, batch_idx):
-        kld_weight = 1.0
+        kld_weight = self.kld_scale
         if self.warmup_kld > 0 and ((self.global_step + 1) > self.zero_kld and
                                     (self.global_step + 1) <= self.warmup_kld):
             multiplier = (self.global_step - self.zero_kld) / self.warmup_kld
-            kld_weight = multiplier
+            kld_weight = self.kld_scale * multiplier
         if self.zero_kld > 0 and self.global_step <= self.zero_kld:
             kld_weight = 0.0
         kwargs = dict()
@@ -104,7 +119,7 @@ class LVTRTrainer(BaseTrainer):
         output = self.model(model_input, **kwargs)
         entropy = output['log_q']
         log_p = output['log_p']
-        kld = masked_loss(entropy,
+        kld = masked_loss(entropy * self.entropy_weight,
                           log_p,
                           fn=lambda x, y: (x - y))
         rec_loss = output['decoder_output']
@@ -187,6 +202,19 @@ class LVTRTrainer(BaseTrainer):
             if self.model.utterance_encoder is not None:
                 rec_audio = self.model.decode(diff_cond,
                                               u_c=output['u_c'])
+                s_u_c_i = torch.randperm(output['u_c'].size(0),
+                                         device=output['u_c'].device)
+                s_u_c = output['u_c'][s_u_c_i]
+                s_rec_audio = self.model.decode(
+                    diff_cond,
+                    u_c=s_u_c
+                )
+                s_rec_audio = self.vocoder.decode(s_rec_audio).tolist()
+                utt_condition = self.vocoder.decode(
+                    batch['cropped_mel_utt'])
+                utt_condition = TensorMask(utt_condition.value[s_u_c_i],
+                                           utt_condition.mask[s_u_c_i])
+                utt_condition = utt_condition.tolist()
             else:
                 rec_audio = self.model.decode(diff_cond)
             prior = batch['mel'].value
@@ -234,6 +262,15 @@ class LVTRTrainer(BaseTrainer):
                                  sampled_aud.float(),
                                  self.global_step,
                                  self.hp.data.val.sample_rate)
+                    if self.model.utterance_encoder is not None:
+                        sw.add_audio(f'shuffled_rec/{self.sampled}',
+                                     s_rec_audio[j].float(),
+                                     self.global_step,
+                                     self.hp.data.val.sample_rate)
+                        sw.add_audio(f'shuffled_cond/{self.sampled}',
+                                     utt_condition[j].float(),
+                                     self.global_step,
+                                     self.hp.data.val.sample_rate)
                     self.sampled += 1
                     j += 1
         normalizing_length = output['log_p'].length.sum()

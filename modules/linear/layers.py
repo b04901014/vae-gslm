@@ -8,35 +8,6 @@ from typing import Optional, Union, Tuple
 from hparams.hp import Hparams
 from modules.norm import get_norm_fn
 from modules.activations import get_activation
-from vector_quantize_pytorch import VectorQuantize
-
-
-class VectorQuantizeParameterize(nn.Module):
-    def __init__(self,
-                 in_dim: int,
-                 codebook_size: int):
-        super().__init__()
-        self.vq = VectorQuantize(
-            dim=in_dim,
-            codebook_size=codebook_size,
-            sample_codebook_temp=0.0,
-            learnable_codebook=True,
-            commitment_weight=0.2,
-            ema_update=False
-        )
-
-    def forward(self, x: TensorMask) -> AttrDict:
-        mask = x.mask
-        q, ind, loss = self.vq(x.value, mask=mask)
-        loss = loss * mask.float().sum()
-        return AttrDict(
-            indicies=TensorMask(ind, mask).apply_mask(),
-            output=TensorMask(q, mask).apply_mask(),
-            loss=loss
-        )
-
-    def get_output(self, ind: torch.Tensor) -> torch.Tensor:
-        return self.vq.codebook[ind]
 
 
 class GumbelSoftMaxParameterize(nn.Module):
