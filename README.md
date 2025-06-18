@@ -77,6 +77,8 @@ find . -name "*.flac" > metadata.txt
 Put the vocoder checkpoint files in `./vocoder_ckpt`, SpeechLM checkpoint files in `./vae-gslm_ckpt`.
 Put the clustering centroids as `./ll60/vad_20s/kmeans_v200.npy`.
 
+- [Huggingface Space for the above checkpoints](https://huggingface.co/liweiche/vae-gslm/tree/main)
+
 ## Running Inference
 If you haven't done so, run:
  - `python -m scripts.hubert_kmeans -c ./ll60/vad_20s/kmeans_v200.npy -i ./LibriSpeech-960/dev/metadata.txt -w ./LibriSpeech-960/dev/ -o ./LibriSpeech-960/dev/token.txt`
